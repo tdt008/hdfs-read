@@ -725,7 +725,7 @@ public class FSNamesystem implements Namesystem, FSClusterStats,
    * @throws IOException if loading fails
    */
   static FSNamesystem loadFromDisk(Configuration conf) throws IOException {
-
+    // 检查配置信息
     checkConfiguration(conf);
 
     // 构造了一个FSImage，这个是一个关键的对象
@@ -5943,6 +5943,7 @@ public class FSNamesystem implements Namesystem, FSClusterStats,
         return;
       }
       // start monitor
+      // SafeModeMonitor不断的检查是否离开安全模式
       reached = now();
       if (smmthread == null) {
         smmthread = new Daemon(new SafeModeMonitor());
@@ -5961,6 +5962,7 @@ public class FSNamesystem implements Namesystem, FSClusterStats,
      */
     private synchronized void setBlockTotal(int total) {
       this.blockTotal = total;
+
       // 在这里其实就可以看到他的threshold的意思就是99.9%的block必须满足副本数量>1的要求
       // 比如说此时hdfs集群中一共是1000个block，此时就要求其中999个block都必须有超过1个副本
       // blockThreshold = 999

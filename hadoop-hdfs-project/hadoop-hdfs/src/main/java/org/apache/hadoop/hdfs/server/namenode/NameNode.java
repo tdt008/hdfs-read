@@ -94,18 +94,31 @@ import static org.apache.hadoop.util.ToolRunner.confirmPrompt;
  * running in any DFS deployment.  (Well, except when there
  * is a second backup/failover NameNode, or when using federated NameNodes.)
  *
- * The NameNode controls two critical tables:
+ *  namenode是用来管理文件系统的namespace，主要管理两类数据（tables，数据表格，数据映射）
+ *  在一个HDF集群只有一个NameNode运行（除了备份/故障转移NameNode，或者使用了联邦Namenode集群）
+ *
+ *
+ * The NameNode controls two critical tables:   主要管理2个关键映射table数据：
  *   1)  filename->blocksequence (namespace)
+ *    文件 -> block的映射（namespace），上传的文件会被切割为多个block，每个是128m，如果不足128m，
+ *    就是分配一个block就可以了，这份映射数据，namespace
  *   2)  block->machinelist ("inodes")
+ *      block -> datanode的映射（inodes），每个block都是会分配给一个datanode的，每个block还有多
+ *      个副本，默认是3个副本，也就是每个block会对应多个datanode，这个映射数据就是inodes
  *
  * The first table is stored on disk and is very precious.
+ *      filename->blocksequence (namespace)的映射是存磁盘上的。同时也存内存里
+ *
  * The second table is rebuilt every time the NameNode comes up.
+ *    是在每次namenode启动之后，由datanode来汇报过来的，而且datanode在运行期间会每隔一段时间都汇报一下自己有哪些block，汇报给namenode。
  *
  * 'NameNode' refers to both this class as well as the 'NameNode server'.
  * The 'FSNamesystem' class actually performs most of the filesystem
  * management.  The majority of the 'NameNode' class itself is concerned
  * with exposing the IPC interface and the HTTP server to the outside world,
  * plus some configuration management.
+ *  NameNode主要是三个组件：NameNode、NameNodeServer、FSNamesystem
+ *
  *
  * NameNode implements the
  * {@link org.apache.hadoop.hdfs.protocol.ClientProtocol} interface, which
@@ -581,6 +594,7 @@ public class NameNode implements NameNodeStatusMXBean {
    * @param conf the configuration
    */
   protected void initialize(Configuration conf) throws IOException {
+    // 设置属性值
     if (conf.get(HADOOP_USER_GROUP_METRICS_PERCENTILES_INTERVALS) == null) {
       String intervals = conf.get(DFS_METRICS_PERCENTILES_INTERVALS_KEY);
       if (intervals != null) {
@@ -589,23 +603,25 @@ public class NameNode implements NameNodeStatusMXBean {
       }
     }
 
+    // UserGroupInformation类属性设置
     UserGroupInformation.setConfiguration(conf);
     loginAsNameNodeUser(conf);
 
+    // 创建NameNodeMetrics类
     NameNode.initMetrics(conf, this.getRole());
     StartupProgressMetrics.register(startupProgress);
 
-    // 启动http server
+    // 启动http server， 后面接收别人发送过来的http请求
     if (NamenodeRole.NAMENODE == role) {
       startHttpServer(conf);
     }
 
     this.spanReceiverHost = SpanReceiverHost.getInstance(conf);
 
-    // 初始化FSNamesystem
+    // 初始化FSNamesystem， 磁盘加载fsimage和edits进行内存合并
     loadNamesystem(conf);
 
-    // 初始化rpc server
+    // 初始化rpc server， 接收别人调用过来的rpc请求
     rpcServer = createRpcServer(conf);
     if (clientNamenodeAddress == null) {
       // This is expected for MiniDFSCluster. Set it now using 
@@ -641,6 +657,7 @@ public class NameNode implements NameNodeStatusMXBean {
   private void startCommonServices(Configuration conf) throws IOException {
     // 调用了FSNamesystem的startCommonServices()
     namesystem.startCommonServices(conf, haContext);
+
     registerNNSMXBean();
     if (NamenodeRole.NAMENODE != role) {
       startHttpServer(conf);
@@ -712,7 +729,8 @@ public class NameNode implements NameNodeStatusMXBean {
       emptier = null;
     }
   }
-  
+
+  // 创建NameNodeHttpServer
   private void startHttpServer(final Configuration conf) throws IOException {
     httpServer = new NameNodeHttpServer(conf, this, getHttpServerBindAddress(conf));
     httpServer.start();
@@ -765,14 +783,17 @@ public class NameNode implements NameNodeStatusMXBean {
       throws IOException {
     // 这里面的东西是比较核心的，创建NameNode实例对象
 
+	// 设置一些属性值
     this.conf = conf;
     this.role = role;
+
     setClientNamenodeAddress(conf);
     String nsId = getNameServiceId(conf);
     String namenodeId = HAUtil.getNameNodeId(conf, nsId);
     this.haEnabled = HAUtil.isHAEnabled(conf, nsId);
     state = createHAState(getStartupOption(conf));
     this.allowStaleStandbyReads = HAUtil.shouldAllowStandbyReads(conf);
+
     // NameNodeHAContext类创建
     this.haContext = createHAContext();
     try {
@@ -1383,6 +1404,9 @@ public class NameNode implements NameNodeStatusMXBean {
       StartupOption.METADATAVERSION, fs, null);
   }
 
+  /**
+   * 进入createNameNode(argv, null)方法， 最后会走到switch的默认处理分支去
+   **/
   public static NameNode createNameNode(String argv[], Configuration conf)
       throws IOException {
     LOG.info("createNameNode " + Arrays.asList(argv));
@@ -1467,10 +1491,11 @@ public class NameNode implements NameNodeStatusMXBean {
         return null;
       }
       // 如果是正常情况下来启动namenode，会走到这里来
-      // new NameNode()，直接创建一个NameNode类的实例对象
       default: {
-        DefaultMetricsSystem.initialize("NameNode");
-        return new NameNode(conf);
+		  // 初始化MetricsSystem类
+		  DefaultMetricsSystem.initialize("NameNode");
+		  // new NameNode()，直接创建一个NameNode类的实例对象
+		  return new NameNode(conf);
       }
     }
   }
@@ -1528,10 +1553,11 @@ public class NameNode implements NameNodeStatusMXBean {
   }
   
   /**
+   * 就是namenode启动的一个入口，start-dfs.sh这种shell脚本一定就是执行这个类的这个main()方法
    */
   public static void main(String argv[]) throws Exception {
     // DFSUtil.parseHelpArgument()一看就是无关紧要的源码
-    // 在检查一些参数的传递是否合法
+    // 对方法参数做一下校验，是否为 -h 或者 -help。 如果是就打印一下帮助信息
     if (DFSUtil.parseHelpArgument(argv, NameNode.USAGE, System.out, true)) {
       System.exit(0);
     }

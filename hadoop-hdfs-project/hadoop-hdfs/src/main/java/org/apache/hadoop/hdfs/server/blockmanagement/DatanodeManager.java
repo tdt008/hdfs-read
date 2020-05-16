@@ -295,7 +295,12 @@ public class DatanodeManager {
     }
     return staleInterval;
   }
-  
+
+  /**
+   *  启动datanode manager，这个东东看起来就是用来管理datanode的这么一个组件，
+   *  docommisson是后台监控datanode状态的一个线程，如果datanode死了就将datanode下线；
+   *  HeartBeat，心跳，是不是后台监控或者管理跟datanode之间的心跳的线程
+   **/
   void activate(final Configuration conf) {
     final DecommissionManager dm = new DecommissionManager(namesystem, blockManager);
     this.decommissionthread = new Daemon(dm.new Monitor(

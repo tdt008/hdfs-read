@@ -438,8 +438,13 @@ public class BlockManager {
   }
 
   public void activate(Configuration conf) {
+    // 后台监控那些进行replication复制block被pending住的一些操作
     pendingReplications.start();
+    // 启动datanode manager，这个东东看起来就是用来管理datanode的这么一个组件，
+    // docommisson是后台监控datanode状态的一个线程，如果datanode死了就将datanode下线；
+    // HeartBeat，心跳，是不是后台监控或者管理跟datanode之间的心跳的线程
     datanodeManager.activate(conf);
+    // 猜测是不是复制block相关的后台线程
     this.replicationThread.start();
   }
 
