@@ -1053,10 +1053,13 @@ public class DataNode extends ReconfigurableBase
     
     // global DN settings
     registerMXBean();
+
     // 初始化了一个DataXceiverServer组件，后续会为client提供数据流方式的block读写
     initDataXceiver(conf);
+
     // 启动info server，是一个http server，本质跟namenode上面的那个http server是一样的
     startInfoServer(conf);
+
     pauseMonitor = new JvmPauseMonitor(conf);
     pauseMonitor.start();
   
@@ -1076,6 +1079,7 @@ public class DataNode extends ReconfigurableBase
 
     // 比较关键的组件，BlockPoolManager，是负责管理block，blockPool的概念
     blockPoolManager = new BlockPoolManager(this);
+
     // BlockPoolManager在初始化的时候，通过refreshNamenodes()方法做了一些初始化的事情的
     blockPoolManager.refreshNamenodes(conf);
 
@@ -2207,6 +2211,7 @@ public class DataNode extends ReconfigurableBase
     UserGroupInformation.setConfiguration(conf);
     SecurityUtil.login(conf, DFS_DATANODE_KEYTAB_FILE_KEY,
         DFS_DATANODE_KERBEROS_PRINCIPAL_KEY);
+    // 创建
     return makeInstance(dataLocations, conf, resources);
   }
 
@@ -2254,8 +2259,10 @@ public class DataNode extends ReconfigurableBase
   @InterfaceAudience.Private
   public static DataNode createDataNode(String args[], Configuration conf,
       SecureResources resources) throws IOException {
+
     // 第一块是实例化一个DataNode实例，同时会进行一些组件的初始化
     DataNode dn = instantiateDataNode(args, conf, resources);
+
     if (dn != null) {
       // 第二块其实就是启动datanode他的一些server，http server，rpc server，stream server
       // 同时启动一些后台线程
@@ -2431,7 +2438,7 @@ public class DataNode extends ReconfigurableBase
     return blockScanner;
   }
 
-
+  // DataNode#main方法调用时： resources = null
   public static void secureMain(String args[], SecureResources resources) {
     int errorCode = 0;
     try {
@@ -2439,7 +2446,7 @@ public class DataNode extends ReconfigurableBase
       StringUtils.startupShutdownMessage(DataNode.class, args, LOG);
       // 这个整体的代码结构，跟namenode启动是很相似的，都是创建datanode实例
       DataNode datanode = createDataNode(args, null, resources);
-      
+
       if (datanode != null) {
         // 调用datanode.join()方法，让datanode无限循环，等待别人来调用他的接口
         datanode.join();

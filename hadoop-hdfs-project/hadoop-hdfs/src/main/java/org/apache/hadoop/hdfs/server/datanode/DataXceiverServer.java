@@ -38,6 +38,9 @@ import com.google.common.annotations.VisibleForTesting;
  * This is created to listen for requests from clients or 
  * other DataNodes.  This small server does not use the 
  * Hadoop IPC mechanism.
+ *
+ *  这个server是以数据流的方式，为client读写block提供数据流的上传，数据流的下载
+ *
  */
 class DataXceiverServer implements Runnable {
   public static final Log LOG = DataNode.LOG;

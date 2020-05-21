@@ -38,6 +38,8 @@ import java.util.*;
  * Manages the BPOfferService objects for the data node.
  * Creation, removal, starting, stopping, shutdown on BPOfferService
  * objects must be done via APIs in this class.
+ *
+ *
  */
 @InterfaceAudience.Private
 class BlockPoolManager {
@@ -209,11 +211,15 @@ class BlockPoolManager {
         for (String nsToAdd : toAdd) {
           ArrayList<InetSocketAddress> addrs =
             Lists.newArrayList(addrMap.get(nsToAdd).values());
+          
+          // BPOfferService  --> 多个BPServiceActor
           BPOfferService bpos = createBPOS(addrs);
+
           bpByNameserviceId.put(nsToAdd, bpos);
           offerServices.add(bpos);
         }
       }
+
       // startAll()就会去启动对应的BPServiceActor那些线程
       startAll();
     }
