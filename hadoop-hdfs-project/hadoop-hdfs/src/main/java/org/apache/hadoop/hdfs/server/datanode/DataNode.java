@@ -119,7 +119,7 @@ import static org.apache.hadoop.util.ExitUtil.terminate;
  * DataNode is a class (and program) that stores a set of
  * blocks for a DFS deployment.  A single deployment can
  * have one or many DataNodes.  Each DataNode communicates
- * regularly with a single NameNode.  It also communicates
+ * regularly(定期地) with a single NameNode.  It also communicates
  * with client code and other DataNodes from time to time.
  *
  * DataNode是专门负责存储block的，一个hdfs集群中可以有一个或者多个datanode都可以
@@ -2435,9 +2435,11 @@ public class DataNode extends ReconfigurableBase
   public static void secureMain(String args[], SecureResources resources) {
     int errorCode = 0;
     try {
+      // 打印日志（注册一个shutdown的时候日志打印的钩子函数）
       StringUtils.startupShutdownMessage(DataNode.class, args, LOG);
       // 这个整体的代码结构，跟namenode启动是很相似的，都是创建datanode实例
       DataNode datanode = createDataNode(args, null, resources);
+      
       if (datanode != null) {
         // 调用datanode.join()方法，让datanode无限循环，等待别人来调用他的接口
         datanode.join();
