@@ -211,7 +211,7 @@ class BlockPoolManager {
         for (String nsToAdd : toAdd) {
           ArrayList<InetSocketAddress> addrs =
             Lists.newArrayList(addrMap.get(nsToAdd).values());
-          
+
           // BPOfferService  --> 多个BPServiceActor
           BPOfferService bpos = createBPOS(addrs);
 
